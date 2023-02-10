@@ -141,3 +141,80 @@ func TransitiveReduction[K comparable, T any](g Graph[K, T]) (Graph[K, T], error
 
 	return transitiveReduction, nil
 }
+
+func TransitiveClosure[K comparable, T any](g Graph[K, T]) (Graph[K, T], error) {
+
+	// Warshall
+
+	if !g.Traits().IsDirected {
+		return nil, fmt.Errorf("transitive reduction cannot be performed on undirected graph")
+	}
+
+	transitiveReduction, err := g.Clone()
+	if err != nil {
+		return nil, fmt.Errorf("failed to clone the graph: %w", err)
+	}
+
+	adjacencyMap, err := transitiveReduction.AdjacencyMap()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get adajcency map: %w", err)
+	}
+
+	for vertex, successors := range adjacencyMap {
+		// For each direct successor of the current vertex, run a DFS starting from that successor.
+		// Then, for each vertex visited in the DFS, inspect all of its edges. Remove the edges that
+		// also appear in the edges of the top-level iteration vertex.
+		//
+		// These edges are redundant because their targets obviously are reachable through the DFS,
+		// hence they can be removed from the top-level vertex.
+		tOrder, err := transitiveReduction.Order()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get graph order: %w", err)
+		}
+		for successor := range successors {
+			stack := make([]K, 0, tOrder)
+			visited := make(map[K]struct{}, tOrder)
+			onStack := make(map[K]bool, tOrder)
+
+			stack = append(stack, successor)
+
+			for len(stack) > 0 {
+				current := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+
+				// If the vertex has already been visited, remove it from the stack and continue
+				// with the next vertex. Otherwise, proceed by putting it onto the stack.
+				if _, ok := visited[current]; ok {
+					onStack[current] = false
+					continue
+				}
+
+				visited[current] = struct{}{}
+				onStack[current] = true
+
+				// Also, if the vertex is a leaf node, remove it from the stack.
+				if len(adjacencyMap[current]) == 0 {
+					onStack[current] = false
+				}
+
+				for adjacency := range adjacencyMap[current] {
+					if _, ok := visited[adjacency]; ok {
+						if onStack[adjacency] {
+							// If the current adjacency is both on the stack and has already been
+							// visited, there is a cycle and an error is returned.
+							return nil, fmt.Errorf("transitive reduction cannot be performed on graph with cycle")
+						}
+						continue
+					}
+
+					if _, ok := adjacencyMap[vertex][adjacency]; ok {
+						_ = transitiveReduction.RemoveEdge(vertex, adjacency)
+					}
+					stack = append(stack, adjacency)
+				}
+			}
+		}
+	}
+
+	return transitiveReduction, nil
+}

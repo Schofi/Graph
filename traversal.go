@@ -135,3 +135,12 @@ func BFS[K comparable, T any](g Graph[K, T], start K, visit func(K) bool) error 
 
 	return nil
 }
+
+// https://faun.pub/implementing-recursive-and-iterative-dfs-on-a-binary-tree-golang-eda04949f4ee
+func DFSTree() {
+
+}
+
+func BFSTree() {
+
+}
