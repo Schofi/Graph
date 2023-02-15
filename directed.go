@@ -19,6 +19,26 @@ func newDirected[K comparable, T any](hash Hash[K, T], traits *Traits, store Sto
 	}
 }
 
+func (d *directed[K, T]) Visit(v K, do func(w K, c K) bool) bool {
+	outEdges, err := d.AdjacencyMap()
+	if err != nil {
+		return false
+	}
+
+	edges, ok := outEdges[v]
+	if !ok {
+		return false
+	}
+
+	for w, _ := range edges {
+		if do(v, w) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (d *directed[K, T]) Traits() *Traits {
 	return d.traits
 }

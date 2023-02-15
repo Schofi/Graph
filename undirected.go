@@ -3,12 +3,58 @@ package graph
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type undirected[K comparable, T any] struct {
 	hash   Hash[K, T]
 	traits *Traits
 	store  Store[K, T]
+}
+
+func (u *undirected[K, T]) Visit(v K, do func(w K, c K) bool) bool {
+	outEdges, err := u.AdjacencyMap()
+	if err != nil {
+		return false
+	}
+
+	edges, ok := outEdges[v]
+	if !ok {
+		return false
+	}
+
+	for w, _ := range edges {
+		if do(v, w) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (u *undirected[K, T]) String() string {
+	var builder strings.Builder
+	v, err := u.Size()
+	if err != nil {
+		return ""
+	}
+	e, err := u.Order()
+	if err != nil {
+		return ""
+	}
+	builder.WriteString(fmt.Sprintf("V = %d, E = %d\n", v, e))
+	outEdges, err := u.AdjacencyMap()
+	if err != nil {
+		return fmt.Sprintf("failed to get adjacency map: %s", err.Error())
+	}
+	for source, destItem := range outEdges {
+		fmt.Print(source)
+		for dest, _ := range destItem {
+			fmt.Print(dest, ": ")
+		}
+		fmt.Println()
+	}
+	return ""
 }
 
 func newUndirected[K comparable, T any](hash Hash[K, T], traits *Traits, store Store[K, T]) *undirected[K, T] {
@@ -50,6 +96,32 @@ func (u *undirected[K, T]) VertexWithProperties(hash K) (T, VertexProperties, er
 	}
 
 	return vertex, prop, nil
+}
+
+func (u *undirected[K, T]) IsConnect(sourceHash, targetHash K) bool {
+
+	visited := make(map[K]bool)
+	visited[sourceHash] = true
+
+	for queue := []K{sourceHash}; len(queue) > 0; {
+		v := queue[0]
+		queue = queue[1:]
+
+		u.Visit(v, func(targetHash K, c K) bool {
+			if visited[targetHash] {
+				return false
+			}
+			visited[targetHash] = true
+			queue = append(queue, targetHash)
+			return false
+		})
+
+	}
+
+	if visited[targetHash] == true {
+		return true
+	}
+	return false
 }
 
 func (u *undirected[K, T]) AddEdge(sourceHash, targetHash K, options ...func(*EdgeProperties)) error {

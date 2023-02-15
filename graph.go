@@ -93,6 +93,8 @@ type Graph[K comparable, T any] interface {
 
 	// Size computes and returns the number of edges in the graph.
 	Size() (int, error)
+
+	Visit(v K, do func(w K, c K) bool) bool
 }
 
 // Edge represents a graph edge with a source and target vertex as well as a weight, which has the

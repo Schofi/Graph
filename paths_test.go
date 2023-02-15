@@ -260,7 +260,6 @@ func TestDirectedShortestPath(t *testing.T) {
 		}
 
 		shortestPath, err := ShortestPath(graph, test.sourceHash, test.targetHash)
-
 		if test.shouldFail != (err != nil) {
 			t.Fatalf("%s: error expectancy doesn't match: expected %v, got %v (error: %v)", name, test.shouldFail, (err != nil), err)
 		}

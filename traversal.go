@@ -98,7 +98,7 @@ func DFS[K comparable, T any](g Graph[K, T], start K, visit func(K) bool) error 
 //	}
 //
 // BFS is non-recursive and maintains a stack instead.
-func BFS[K comparable, T any](g Graph[K, T], start K, visit func(K) bool) error {
+func BFS[K comparable, T any](g Graph[K, T], start K, count int, visit func(K) bool) error {
 	adjacencyMap, err := g.AdjacencyMap()
 	if err != nil {
 		return fmt.Errorf("could not get adjacency map: %w", err)
@@ -131,6 +131,74 @@ func BFS[K comparable, T any](g Graph[K, T], start K, visit func(K) bool) error 
 			}
 		}
 
+	}
+
+	return nil
+}
+
+// BFSRecursive traverses g in breadth-first order starting at v.
+// When the algorithm follows an edge (v, w) and finds a previously
+// unvisited vertex w, it calls do(v, w, c) with c equal to
+// the cost of the edge (v, w).
+
+func BFSRecursive[K comparable, T any](g Graph[K, T], start K, do func(v, w K)) {
+	visited := make(map[K]bool)
+	visited[start] = true
+	for queue := []K{start}; len(queue) > 0; {
+
+		v := queue[0]
+		queue = queue[1:]
+
+		g.Visit(start, func(w K, c K) bool {
+			if visited[w] {
+				return false
+			}
+			do(v, w)
+
+			visited[w] = true
+			queue = append(queue, w)
+			return false
+		})
+
+	}
+}
+
+func dfsHelper[K comparable, T any](g Graph[K, T], start K, visited map[K]bool) {
+	visited[start] = true
+	adjacencyMap, err := g.AdjacencyMap()
+	if err != nil {
+		return
+	}
+
+	edge, ok := adjacencyMap[start]
+	if !ok {
+		return
+	}
+
+	for i, _ := range edge {
+		if visited[i] == false {
+			dfsHelper(g, i, visited)
+		}
+	}
+}
+
+func DFSRecursive[K comparable, T any](g Graph[K, T], start K, do func(v, w K)) error {
+	visited := make(map[K]bool)
+
+	adjacencyMap, err := g.AdjacencyMap()
+	if err != nil {
+		return fmt.Errorf("could not get adjacency map: %w", err)
+	}
+	edge, ok := adjacencyMap[start]
+	if !ok {
+		return fmt.Errorf("could not find start vertex with hash %v", start)
+	}
+
+	for i, _ := range edge {
+		if visited[i] == false {
+			dfsHelper(g, i, visited)
+			do(start, i)
+		}
 	}
 
 	return nil
